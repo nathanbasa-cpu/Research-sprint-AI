@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SprintResearch ⚡</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: linear-gradient(135deg,#f0f0ff 0%,#fafaff 60%,#f5f0ff 100%); min-height: 100vh; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+    .fade-up { animation: fadeUp 0.3s ease both; }
+    button:disabled { opacity: 0.38; cursor: not-allowed; }
+    textarea:focus, input:focus { outline: 2px solid #6366f1; border-color: #6366f1 !important; }
+    .spinner { width:22px; height:22px; border:3px solid #c7d2fe; border-top:3px solid #6366f1; border-radius:50%; animation:spin 0.8s linear infinite; margin:0 auto 14px; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState } = React;
+
+    const INDUSTRY_PRESETS = [
+      { label: "E-commerce / Import & Resale", value: "ecommerce" },
+      { label: "SaaS / Tech", value: "saas" },
+      { label: "Manufacturing / Supply Chain", value: "manufacturing" },
+      { label: "F&B / Consumer Goods", value: "fnb" },
+      { label: "Other", value: "other" },
+    ];
+
+    const RESEARCH_TYPES = [
+      { id: "supplier", label: "Supplier Analysis", desc: "Find & compare suppliers, MOQ, pricing tiers" },
+      { id: "market", label: "Market Sizing", desc: "TAM/SAM/SOM, demand signals, growth trends" },
+      { id: "competitor", label: "Competitor Landscape", desc: "Who's winning, pricing, positioning gaps" },
+      { id: "pricing", label: "Pricing & Margin Model", desc: "Landed cost, duties, markup, break-even" },
+      { id: "entry", label: "Market Entry Strategy", desc: "Channels, risks, regulatory, go-to-market" },
+    ];
+
+    const REPORTS = {
+      supplier: (product, market) => ({
+        title: "Supplier Analysis",
+        bullets: [
+          `Primary sourcing regions for ${product}: China (Guangdong, Zhejiang), Taiwan, Vietnam — China offers lowest unit cost at scale`,
+          "Typical MOQ ranges: Tier-1 factories 500–1,000 units; trading companies 50–200 units; agents/resellers 1–10 units at 15–25% premium",
+          "Price tiers: L1 retail ~100% markup over factory; L2 distributor ~60% markup; L3 direct factory ~30–40% markup — always negotiate L3",
+          `For ${market}: Alibaba, Made-in-China, Global Sources are starting points; verify with video factory tours and sample orders`,
+          "Lead times: 30–45 days production + 15–25 days sea freight; air freight cuts to 5–7 days at 4–6x cost",
+          "Red flags: no factory address, unwilling to do video call, no prior export records, requests 100% upfront payment",
+          "Due diligence: request SGS or Bureau Veritas inspection report; use Alibaba Trade Assurance for first orders",
+        ]
+      }),
+      market: (product, market) => ({
+        title: "Market Sizing",
+        bullets: [
+          `${market} market TAM: consumer goods in SE Asia growing at 8–12% CAGR (2024–2028)`,
+          "SAM (reachable segment): typically 5–15% of TAM for a new entrant with limited distribution in year 1",
+          "SOM (realistic year-1 capture): 0.5–2% of SAM is achievable with consistent execution and $0 paid ads",
+          "Demand signals to track: Google Trends volume, Facebook group membership growth, Shopee/Lazada bestseller lists",
+          `${market} e-commerce growing fast — mobile-first buyers, COD preference, price sensitivity high below ₱5,000`,
+          "Seasonal peaks: Nov–Dec (Christmas), Jan–Feb (New Year), back-to-school Q3 — plan inventory 60 days ahead",
+          "Key validation: 100 orders in first 90 days = product-market fit; below 20 = rethink positioning or price",
+        ]
+      }),
+      competitor: (product, market) => ({
+        title: "Competitor Landscape",
+        bullets: [
+          `In ${market}: mix of grey-market importers (no warranty, low price), local distributors, and brand flagship stores`,
+          "Grey market undercuts on price by 20–40% but offers no after-sales — your edge: warranty, support, faster delivery",
+          "Check Shopee/Lazada top sellers — sort by 'Most Sold' to identify volume leaders and price anchors",
+          "Facebook groups are grey market's home — study what sells, what gets complained about, what's out of stock",
+          "Winning sellers share: clear photos, price transparency, fast reply (<1hr), ratings above 4.7",
+          "Gap opportunity: mid-tier segment (above grey market quality, below flagship price) is underserved in SE Asia",
+          `Differentiation: bundled accessories, local warranty, instalment options (GCash, BillEase in ${market})`,
+        ]
+      }),
+      pricing: (product, market) => ({
+        title: "Pricing & Margin Model",
+        bullets: [
+          "Landed cost: Factory Price + Sea Freight (~$100–150/unit) + Import Duty (5–30% on CIF) + VAT (12% in PH) + Last-mile",
+          "Example: $100 factory → +$120 freight → $220 CIF → +30% duty ($66) → $286 → +12% VAT ($34) → ~$320 landed",
+          "Target retail markup: 2.0–2.5x landed cost for sustainable margin after platform fees, returns, marketing",
+          "Platform fees: Shopee/Lazada charge 1–5% commission + ~2% payment processing — bake into pricing",
+          "Break-even: fixed monthly costs ÷ gross margin per unit — aim to break even within first 3 months",
+          "Price anchoring: list at 2.5x, run 'sale' at 2.0x — perceived discount drives conversion without destroying margin",
+          "Watch: USD/PHP swings can move landed cost 5–8% — review pricing quarterly",
+        ]
+      }),
+      entry: (product, market) => ({
+        title: "Market Entry Strategy",
+        bullets: [
+          `Phase 1 (Month 1–2): Single SKU test — pick your top product, order 1–5 units, sell via Facebook groups in ${market}`,
+          "Phase 2 (Month 2–3): Validate demand, collect reviews, refine pricing — if sell-through >80% reorder 10–20 units",
+          "Phase 3 (Month 3–6): Open Shopee/Lazada store, build TikTok/Instagram content, scale to 50+ units",
+          "Channel priority: Facebook groups (fastest first sale) → Shopee/Lazada (volume) → own website (margin)",
+          `Regulatory checklist for ${market}: DTI registration, BIR TIN, import permits, product safety standards (DTI-BPS)`,
+          "Customer acquisition: unboxing content, community seeding in FB groups, referral discounts — no paid ads until month 3+",
+          "Risk mitigation: never order >$500 stock until you've sold 5 units manually — test before you invest",
+        ]
+      }),
+    };
+
+    function generateReport(industry, selectedTypes, productDesc, targetMarket) {
+      const sections = selectedTypes.map(id => REPORTS[id] ? REPORTS[id](productDesc, targetMarket) : null).filter(Boolean);
+      const risks = [
+        "Currency risk: USD/local swings affect landed cost — review pricing every 60 days",
+        "Supplier risk: single-source dependency — qualify 2 suppliers before scaling past 50 units/month",
+        "Platform risk: Shopee/Lazada policy changes — build direct customer list (WhatsApp/email) from day 1",
+        "Demand risk: trend products can fade in 6–12 months — validate repeat purchase rate before heavy inventory",
+        "Regulatory risk: import restrictions can change — check with a customs broker before first large order",
+      ];
+      const nextSteps = [
+        `Order 1 sample unit of your top product this week — it's your proof of concept and content asset`,
+        `Join 3 Facebook groups in ${targetMarket} related to your category — observe what sells and what buyers ask`,
+        `Build a price model in a spreadsheet — factory price → landed cost → retail price → margin — know your numbers`,
+      ];
+      return { sections, risks, nextSteps };
+    }
+
+    function Badge({ children, color = "#6366f1" }) {
+      return <span style={{ background: color+"18", color, border:`1px solid ${color}40`, borderRadius:4, padding:"2px 8px", fontSize:11, fontWeight:700, letterSpacing:"0.05em", textTransform:"uppercase" }}>{children}</span>;
+    }
+
+    function Section({ title, bullets, accent = "#6366f1" }) {
+      return (
+        <div style={{ background:"#fff", border:"1px solid #e5e7eb", borderRadius:10, overflow:"hidden", marginBottom:14 }}>
+          <div style={{ background:"#f8f9ff", borderBottom:"1px solid #e5e7eb", padding:"10px 16px", display:"flex", alignItems:"center", gap:8 }}>
+            <div style={{ width:3, height:16, background:accent, borderRadius:2 }} />
+            <span style={{ fontWeight:700, fontSize:13, color:"#1e1b4b" }}>{title}</span>
+          </div>
+          <div style={{ padding:"14px 16px" }}>
+            {bullets.map((b, i) => (
+              <div key={i} style={{ display:"flex", gap:8, marginBottom:8 }}>
+                <span style={{ color:accent, fontWeight:900, flexShrink:0, fontSize:12, marginTop:2 }}>→</span>
+                <span style={{ fontSize:13, color:"#374151", lineHeight:1.65 }}>{b}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    function App() {
+      const [stage, setStage] = useState("industry");
+      const [industry, setIndustry] = useState("");
+      const [customIndustry, setCustomIndustry] = useState("");
+      const [selectedTypes, setSelectedTypes] = useState([]);
+      const [productDesc, setProductDesc] = useState("");
+      const [targetMarket, setTargetMarket] = useState("");
+      const [report, setReport] = useState(null);
+      const [loading, setLoading] = useState(false);
+
+      function toggleType(id) {
+        setSelectedTypes(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+      }
+
+      const canProceedStage1 = industry !== "" && (industry !== "other" || customIndustry.trim().length > 2);
+      const canProceedStage2 = selectedTypes.length > 0 && productDesc.trim().length > 5 && targetMarket.trim().length > 2;
+
+      function runResearch() {
+        setLoading(true);
+        setTimeout(() => {
+          setReport(generateReport(industry, selectedTypes, productDesc, targetMarket));
+          setLoading(false);
+          setStage("report");
+        }, 1800);
+      }
+
+      function reset() {
+        setStage("industry"); setIndustry(""); setCustomIndustry("");
+        setSelectedTypes([]); setProductDesc(""); setTargetMarket("");
+        setReport(null); setLoading(false);
+      }
+
+      const progress = stage === "industry" ? "33%" : stage === "research" ? "66%" : "100%";
+
+      return (
+        <div style={{ minHeight:"100vh", paddingBottom:60 }}>
+          {/* Header */}
+          <div style={{ background:"#1e1b4b", color:"#fff", padding:"16px 20px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+            <div>
+              <div style={{ fontSize:17, fontWeight:800, letterSpacing:"-0.02em" }}>⚡ SprintResearch</div>
+              <div style={{ fontSize:11, color:"#a5b4fc", marginTop:1 }}>AI Market Research · Instant Reports</div>
+            </div>
+            <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+              <Badge color="#a5b4fc">FREE BETA</Badge>
+              {report && <button onClick={reset} style={{ background:"transparent", border:"1px solid #4c4987", color:"#a5b4fc", borderRadius:6, padding:"5px 11px", fontSize:12, cursor:"pointer" }}>New Sprint</button>}
+            </div>
+          </div>
+
+          {/* Progress bar */}
+          <div style={{ background:"#e5e7eb", height:3 }}>
+            <div style={{ height:3, background:"#6366f1", transition:"width 0.4s ease", width:progress }} />
+          </div>
+
+          <div style={{ maxWidth:660, margin:"0 auto", padding:"24px 16px" }}>
+
+            {/* STAGE 1 - Industry */}
+            {stage === "industry" && (
+              <div className="fade-up">
+                <p style={{ fontSize:11, color:"#6366f1", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:6 }}>Step 1 of 2</p>
+                <h2 style={{ fontSize:21, fontWeight:800, color:"#1e1b4b", marginBottom:4 }}>What industry are you researching?</h2>
+                <p style={{ color:"#6b7280", fontSize:13, marginBottom:20 }}>Pick the closest match.</p>
+                <div style={{ display:"flex", flexDirection:"column", gap:9 }}>
+                  {INDUSTRY_PRESETS.map(p => (
+                    <button key={p.value} onClick={() => setIndustry(p.value)} style={{
+                      background: industry === p.value ? "#6366f1" : "#fff",
+                      color: industry === p.value ? "#fff" : "#1f2937",
+                      border: industry === p.value ? "2px solid #6366f1" : "2px solid #e5e7eb",
+                      borderRadius:10, padding:"13px 16px", textAlign:"left", cursor:"pointer", fontSize:14, fontWeight:600
+                    }}>{p.label}</button>
+                  ))}
+                </div>
+                {industry === "other" && (
+                  <input value={customIndustry} onChange={e => setCustomIndustry(e.target.value)} placeholder="Describe your industry..."
+                    style={{ marginTop:10, width:"100%", padding:"11px 13px", borderRadius:8, border:"2px solid #e5e7eb", fontSize:13 }} />
+                )}
+                <button onClick={() => setStage("research")} disabled={!canProceedStage1} style={{
+                  marginTop:18, width:"100%", background:"#6366f1", color:"#fff", border:"none",
+                  borderRadius:10, padding:"13px", fontSize:15, fontWeight:700, cursor:"pointer"
+                }}>Continue →</button>
+              </div>
+            )}
+
+            {/* STAGE 2 - Config */}
+            {stage === "research" && (
+              <div className="fade-up">
+                <p style={{ fontSize:11, color:"#6366f1", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:6 }}>Step 2 of 2</p>
+                <h2 style={{ fontSize:21, fontWeight:800, color:"#1e1b4b", marginBottom:4 }}>Configure your research sprint</h2>
+                <p style={{ color:"#6b7280", fontSize:13, marginBottom:18 }}>More specific = sharper output.</p>
+
+                <div style={{ marginBottom:14 }}>
+                  <label style={{ fontSize:12, fontWeight:700, color:"#374151", display:"block", marginBottom:6 }}>
+                    What product or service? <span style={{ color:"#ef4444" }}>*</span>
+                  </label>
+                  <textarea value={productDesc} onChange={e => setProductDesc(e.target.value)} rows={3}
+                    placeholder="e.g. MTB and gravel bicycles imported from China for resale via Facebook and Shopee"
+                    style={{ width:"100%", padding:"11px 13px", borderRadius:8, border:"2px solid #e5e7eb", fontSize:13, resize:"vertical", lineHeight:1.5 }} />
+                </div>
+
+                <div style={{ marginBottom:18 }}>
+                  <label style={{ fontSize:12, fontWeight:700, color:"#374151", display:"block", marginBottom:6 }}>
+                    Target market / geography <span style={{ color:"#ef4444" }}>*</span>
+                  </label>
+                  <input value={targetMarket} onChange={e => setTargetMarket(e.target.value)}
+                    placeholder="e.g. Metro Manila, Philippines"
+                    style={{ width:"100%", padding:"11px 13px", borderRadius:8, border:"2px solid #e5e7eb", fontSize:13 }} />
+                </div>
+
+                <div style={{ marginBottom:22 }}>
+                  <label style={{ fontSize:12, fontWeight:700, color:"#374151", display:"block", marginBottom:10 }}>
+                    Research focus <span style={{ color:"#6b7280", fontWeight:400 }}>(pick all that apply)</span>
+                  </label>
+                  <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                    {RESEARCH_TYPES.map(r => {
+                      const sel = selectedTypes.includes(r.id);
+                      return (
+                        <button key={r.id} onClick={() => toggleType(r.id)} style={{
+                          background: sel ? "#f0f0ff" : "#fff",
+                          border: sel ? "2px solid #6366f1" : "2px solid #e5e7eb",
+                          borderRadius:10, padding:"11px 13px", textAlign:"left", cursor:"pointer",
+                          display:"flex", alignItems:"center", gap:11
+                        }}>
+                          <div style={{ width:18, height:18, borderRadius:4, border: sel ? "none" : "2px solid #d1d5db", background: sel ? "#6366f1" : "transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                            {sel && <span style={{ color:"#fff", fontSize:11, fontWeight:900 }}>✓</span>}
+                          </div>
+                          <div>
+                            <div style={{ fontSize:13, fontWeight:700, color: sel ? "#4338ca" : "#1f2937" }}>{r.label}</div>
+                            <div style={{ fontSize:11, color:"#6b7280", marginTop:1 }}>{r.desc}</div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div style={{ display:"flex", gap:10 }}>
+                  <button onClick={() => setStage("industry")} style={{ flex:1, background:"#fff", color:"#6b7280", border:"2px solid #e5e7eb", borderRadius:10, padding:"12px", fontSize:14, cursor:"pointer", fontWeight:600 }}>← Back</button>
+                  <button onClick={runResearch} disabled={!canProceedStage2 || loading} style={{ flex:3, background:"#6366f1", color:"#fff", border:"none", borderRadius:10, padding:"12px", fontSize:15, fontWeight:800, cursor:"pointer" }}>
+                    {loading ? "Running..." : "Run Research Sprint ⚡"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Loading */}
+            {loading && (
+              <div style={{ marginTop:20, background:"#fff", borderRadius:12, border:"1px solid #e5e7eb", padding:"32px 20px", textAlign:"center" }}>
+                <div className="spinner" />
+                <p style={{ fontSize:13, color:"#6b7280" }}>Generating your research sprint…</p>
+              </div>
+            )}
+
+            {/* STAGE 3 - Report */}
+            {stage === "report" && report && (
+              <div className="fade-up">
+                <div style={{ background:"#1e1b4b", borderRadius:12, padding:"16px 18px", marginBottom:18, color:"#fff" }}>
+                  <div style={{ fontSize:10, color:"#a5b4fc", fontWeight:700, textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:4 }}>Research Sprint Report</div>
+                  <div style={{ fontSize:15, fontWeight:800, marginBottom:8 }}>{productDesc.slice(0,55)}{productDesc.length > 55 ? "…" : ""}</div>
+                  <div style={{ display:"flex", gap:5, flexWrap:"wrap" }}>
+                    {selectedTypes.map(id => <Badge key={id} color="#a5b4fc">{RESEARCH_TYPES.find(r => r.id === id)?.label}</Badge>)}
+                  </div>
+                </div>
+
+                {/* Upsell */}
+                <div style={{ background:"linear-gradient(90deg,#f0f0ff,#fdf4ff)", border:"1px solid #c4b5fd", borderRadius:10, padding:"12px 14px", marginBottom:18, display:"flex", justifyContent:"space-between", alignItems:"center", gap:10 }}>
+                  <div>
+                    <div style={{ fontSize:12, fontWeight:700, color:"#4338ca" }}>Want a deeper custom report?</div>
+                    <div style={{ fontSize:11, color:"#6b7280", marginTop:2 }}>Live data + Excel model + analyst follow-up — from $99</div>
+                  </div>
+                  <button onClick={() => window.open('https://wa.me/639273530928?text=Hi, I want a custom research report', '_blank')}
+                    style={{ background:"#6366f1", color:"#fff", border:"none", borderRadius:7, padding:"8px 13px", fontSize:12, fontWeight:700, cursor:"pointer", flexShrink:0 }}>
+                    Get Custom Report
+                  </button>
+                </div>
+
+                {report.sections.map((s, i) => <Section key={i} title={s.title} bullets={s.bullets} />)}
+                <Section title="Key Risks & Watchouts" bullets={report.risks} accent="#ef4444" />
+
+                <div style={{ background:"#1e1b4b", borderRadius:10, padding:"14px 16px", marginBottom:14 }}>
+                  <div style={{ fontSize:12, fontWeight:700, color:"#a5b4fc", textTransform:"uppercase", letterSpacing:"0.08em", marginBottom:10 }}>Immediate Next Steps</div>
+                  {report.nextSteps.map((s, i) => (
+                    <div key={i} style={{ display:"flex", gap:10, marginBottom:10 }}>
+                      <div style={{ width:22, height:22, borderRadius:"50%", background:"#6366f1", color:"#fff", fontSize:11, fontWeight:800, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>{i+1}</div>
+                      <span style={{ fontSize:13, color:"#e0e7ff", lineHeight:1.6 }}>{s}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ background:"#f0fdf4", border:"1px solid #bbf7d0", borderRadius:8, padding:"10px 14px", marginBottom:20 }}>
+                  <span style={{ fontSize:12, color:"#166534", fontWeight:600 }}>Data confidence: 7/10 </span>
+                  <span style={{ fontSize:12, color:"#166534" }}>— based on publicly available market data and category benchmarks. Validate with 5 real buyer conversations before committing to inventory.</span>
+                </div>
+
+                <button onClick={reset} style={{ width:"100%", background:"#fff", color:"#6366f1", border:"2px solid #6366f1", borderRadius:10, padding:"13px", fontSize:14, fontWeight:700, cursor:"pointer" }}>
+                  New Research Sprint
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
